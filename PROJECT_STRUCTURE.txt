@@ -1,0 +1,134 @@
+GameDB_Project/
+│
+├── 📁 ingestion/              # Data Ingestion Layer
+│   ├── __init__.py
+│   ├── rawg_fetcher.py        # RAWG API client + CDC
+│   └── ingest_pipeline.py     # Ingestion orchestrator
+│
+├── 📁 storage/                # Storage Layer
+│   ├── __init__.py
+│   └── minio_client.py        # MinIO S3 operations
+│
+├── 📁 etl/                    # ETL Transformation Layer
+│   ├── __init__.py
+│   ├── dimensions.py          # Build dimension tables
+│   ├── bridges.py             # Build bridge tables
+│   ├── fact.py                # Build fact table
+│   ├── iceberg_catalog.py     # Catalog manager
+│   ├── iceberg_schemas.py     # Schema definitions
+│   ├── iceberg_writer.py      # Write to Iceberg
+│   └── pipeline.py            # ETL orchestrator
+│
+├── 📁 utils/                  # Utilities
+│   ├── __init__.py
+│   ├── config.py              # Configuration
+│   └── check_services.py      # Health checks
+│
+├── 📁 tests/                  # Test Suite
+│   ├── __init__.py
+│   └── test_pipeline.py       # Unit tests
+│
+├── 📁 data/                   # Local data (gitignored)
+│   └── rawg_games/
+│       ├── *.parquet          # Raw data files
+│       └── cdc_state.json     # CDC tracking
+│
+├── 📄 run_ingestion.py        # Quick start: Ingestion
+├── 📄 run_etl.py              # Quick start: ETL
+│
+├── 📄 README.md               # Project overview
+├── 📄 QUICKSTART.md           # Getting started guide
+├── 📄 ARCHITECTURE.md         # Technical architecture
+├── 📄 REFACTORING_SUMMARY.md  # What changed
+│
+├── 📄 requirements.txt        # Python dependencies
+├── 📄 .env.example            # Environment template
+├── 📄 .env                    # Environment config (gitignored)
+└── 📄 .gitignore              # Git ignore rules
+
+
+═══════════════════════════════════════════════════════════════
+
+DATA FLOW:
+
+  ┌─────────────┐
+  │  RAWG API   │  External game database
+  └──────┬──────┘
+         │
+         │ HTTP GET (with CDC)
+         ▼
+  ┌─────────────┐
+  │ Ingestion   │  ingestion/ingest_pipeline.py
+  │  Pipeline   │  - Fetch games by month
+  └──────┬──────┘  - Track processed (CDC)
+         │         - Save as parquet
+         │
+         │ Upload parquet
+         ▼
+  ┌─────────────┐
+  │   MinIO     │  storage/minio_client.py
+  │  (raw/)     │  - S3-compatible storage
+  └──────┬──────┘  - Raw parquet files
+         │
+         │ Read parquet
+         ▼
+  ┌─────────────┐
+  │     ETL     │  etl/pipeline.py
+  │  Pipeline   │  - Build dimensions
+  └──────┬──────┘  - Build bridges
+         │         - Build fact
+         │         - Write to Iceberg
+         │
+         │ Write tables
+         ▼
+  ┌─────────────┐
+  │  Iceberg    │  etl/iceberg_writer.py
+  │   Tables    │  - Dimensional model
+  └──────┬──────┘  - ACID transactions
+         │         - Via Nessie catalog
+         │
+         │ SQL queries
+         ▼
+  ┌─────────────┐
+  │   Dremio    │  Query engine
+  │   Queries   │  - Analytics
+  └─────────────┘  - Reporting
+
+═══════════════════════════════════════════════════════════════
+
+DIMENSIONAL MODEL:
+
+  Dimensions (6):
+    • dim_platform      (gaming platforms)
+    • dim_store         (digital stores)
+    • dim_genre         (game genres)
+    • dim_tag           (game tags)
+    • dim_esrb_rating   (age ratings)
+    • dim_date          (date dimension)
+
+  Bridges (4):
+    • bridge_game_platform
+    • bridge_game_store
+    • bridge_game_genre
+    • bridge_game_tag
+
+  Fact (1):
+    • fact_games        (metrics + foreign keys)
+
+═══════════════════════════════════════════════════════════════
+
+QUICK COMMANDS:
+
+  # Check services
+  python utils/check_services.py
+
+  # Run ingestion
+  python run_ingestion.py
+
+  # Run ETL
+  python run_etl.py
+
+  # Run tests
+  pytest tests/
+
+═══════════════════════════════════════════════════════════════
