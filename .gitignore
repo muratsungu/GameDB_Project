@@ -26,5 +26,9 @@ htmlcov/
 # Environment
 .env
 
+# Data
+ data/ 
+ *.parquet
+ 
 # Logs
 *.log
