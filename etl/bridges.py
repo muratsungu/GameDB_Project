@@ -27,7 +27,7 @@ class BridgeBuilder:
                 continue
 
             platform_list = row.get("platforms")
-            if platform_list and isinstance(platform_list, (list, np.ndarray)):
+            if platform_list is not None and isinstance(platform_list, (list, np.ndarray)) and len(platform_list) > 0:
                 for p in platform_list:
                     if isinstance(p, dict):
                         platform_data = p.get("platform", {})
@@ -57,7 +57,7 @@ class BridgeBuilder:
                 continue
 
             store_list = row.get("stores")
-            if store_list and isinstance(store_list, (list, np.ndarray)):
+            if store_list is not None and isinstance(store_list, (list, np.ndarray)) and len(store_list) > 0:
                 for s in store_list:
                     if isinstance(s, dict):
                         store_data = s.get("store", {})
@@ -87,7 +87,7 @@ class BridgeBuilder:
                 continue
 
             genre_list = row.get("genres")
-            if genre_list and isinstance(genre_list, (list, np.ndarray)):
+            if genre_list is not None and isinstance(genre_list, (list, np.ndarray)) and len(genre_list) > 0:
                 for g in genre_list:
                     if isinstance(g, dict):
                         genre_key = g.get("id")
@@ -115,7 +115,7 @@ class BridgeBuilder:
                 continue
 
             tag_list = row.get("tags")
-            if tag_list and isinstance(tag_list, (list, np.ndarray)):
+            if tag_list is not None and isinstance(tag_list, (list, np.ndarray)) and len(tag_list) > 0:
                 for t in tag_list:
                     if isinstance(t, dict):
                         tag_key = t.get("id")

@@ -5,13 +5,12 @@ from storage.minio_client import MinIOClient
 from etl.dimensions import DimensionBuilder
 from etl.bridges import BridgeBuilder
 from etl.fact import FactBuilder
-from etl.iceberg_catalog import IcebergCatalog
-from etl.iceberg_writer import IcebergWriter
+from etl.parquet_writer import ParquetWriter
 from utils.config import Config
 
 
 class ETLPipeline:
-    """Orchestrate the complete ETL pipeline: MinIO → Iceberg."""
+    """Orchestrate the complete ETL pipeline: MinIO -> Parquet."""
 
     def __init__(self, config: Config):
         self.config = config
@@ -21,23 +20,14 @@ class ETLPipeline:
             config.minio_secret_key,
             config.minio_bucket,
         )
-        self.catalog = IcebergCatalog(
-            config.catalog_uri,
-            config.warehouse_path,
-            config.minio_endpoint,
-            config.minio_access_key,
-            config.minio_secret_key,
-            config.namespace,
-        )
-        self.writer = IcebergWriter(self.catalog)
+        self.writer = ParquetWriter(self.minio)
 
-    def run(self, mode: str = "overwrite"):
+    def run(self):
         """Execute the ETL pipeline."""
         start_time = datetime.now()
         print("=" * 70)
-        print("ETL PIPELINE: MinIO → Iceberg")
+        print("ETL PIPELINE: MinIO -> Parquet -> Dremio")
         print("=" * 70)
-        print(f"Mode: {mode}")
         print(f"Start: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
 
         # Read raw data from MinIO
@@ -69,20 +59,22 @@ class ETLPipeline:
         fact = fact_builder.build()
         print(f"  fact_games: {len(fact)} records")
 
-        # Write to Iceberg
-        print("\n[5/5] Writing to Iceberg warehouse...")
-        self.writer.write_all(dimensions, bridges, fact, mode=mode)
-        print("  All tables written")
+        # Write as parquet to MinIO
+        print("\n[5/5] Writing parquet to MinIO...")
+        self.writer.write_all(dimensions, bridges, fact)
 
         # Summary
         end_time = datetime.now()
         duration = (end_time - start_time).total_seconds()
         print("\n" + "=" * 70)
-        print("ETL PIPELINE COMPLETED")
+        print("ETL COMPLETED - Data ready for Dremio!")
         print("=" * 70)
         print(f"Duration: {duration:.2f}s")
         print(f"Games processed: {len(fact):,}")
-        print(f"Tables created: {len(dimensions) + len(bridges) + 1}")
+        print(f"Files written: {len(dimensions) + len(bridges) + 1}")
+        print("\nNext steps:")
+        print("1. Open Dremio: http://localhost:9047")
+        print("2. Run dremio_setup.sql to create tables")
         print("=" * 70)
 
 
@@ -90,7 +82,7 @@ def main():
     """Entry point for ETL pipeline."""
     config = Config.from_env()
     pipeline = ETLPipeline(config)
-    pipeline.run(mode="overwrite")
+    pipeline.run()
 
 
 if __name__ == "__main__":

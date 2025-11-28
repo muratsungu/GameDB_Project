@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Quick start script for ETL pipeline."""
+"""ETL pipeline entry point."""
 import sys
 from pathlib import Path
 
-# Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from etl.pipeline import main

@@ -1,0 +1,180 @@
+================================================================================
+                    RAWG GAMES DATA PIPELINE - FINAL
+================================================================================
+
+CLEAN, MINIMAL, PRODUCTION-READY
+
+================================================================================
+PROJECT STRUCTURE
+================================================================================
+
+Root Files:
+  - README.md              Main documentation
+  - requirements.txt       Python dependencies
+  - .env.example          Configuration template
+  - dremio_setup.sql      SQL for Dremio tables
+  - run_ingestion.py      Fetch from RAWG API
+  - run_etl.py            Transform data
+
+Modules:
+  /ingestion/             RAWG API → MinIO
+    - rawg_fetcher.py     API client with CDC
+    - ingest_pipeline.py  Ingestion orchestrator
+
+  /storage/               MinIO operations
+    - minio_client.py     S3 client wrapper
+
+  /etl/                   Transform to dimensional model
+    - dimensions.py       Build dimension tables
+    - bridges.py          Build bridge tables
+    - fact.py             Build fact table
+    - parquet_writer.py   Write parquet to MinIO
+    - pipeline.py         ETL orchestrator
+
+  /utils/                 Configuration
+    - config.py           Environment config
+    - check_services.py   Health checks
+
+  /tests/                 Test suite
+    - test_pipeline.py    Unit tests
+
+Total Python Files: 18
+Total Lines of Code: ~1,500
+
+================================================================================
+DATA FLOW
+================================================================================
+
+1. RAWG API
+   ↓
+2. Ingestion (Python)
+   → Saves raw parquet to MinIO
+   ↓
+3. MinIO Storage
+   → s3://games/raw/*.parquet
+   ↓
+4. ETL Pipeline (Python)
+   → Transforms to dimensional model
+   → Builds 6 dimensions, 4 bridges, 1 fact table
+   ↓
+5. MinIO Storage
+   → s3://games/transformed/*.parquet
+   ↓
+6. Dremio (SQL)
+   → CREATE TABLE ... AS SELECT ...
+   → Query and analyze
+
+================================================================================
+USAGE
+================================================================================
+
+# 1. Ingest data
+python run_ingestion.py
+→ Fetches 64,417 games from RAWG API
+→ Stores in MinIO
+
+# 2. Transform data
+python run_etl.py
+→ Builds dimensional model
+→ Writes 11 parquet files to MinIO
+
+# 3. Create tables in Dremio
+→ Open http://localhost:9047
+→ Run dremio_setup.sql
+
+# 4. Query
+SELECT * FROM fact_games WHERE rating > 4.5;
+
+================================================================================
+DATA MODEL
+================================================================================
+
+Dimensions (6):
+  - dim_platform (28 records)
+  - dim_store (10 records)
+  - dim_genre (19 records)
+  - dim_tag (9,646 records)
+  - dim_esrb_rating (6 records)
+  - dim_date (4,018 records)
+
+Bridges (4):
+  - bridge_game_platform (85,000 relationships)
+  - bridge_game_store (67,081 relationships)
+  - bridge_game_genre (129,654 relationships)
+  - bridge_game_tag (1,269,843 relationships)
+
+Fact (1):
+  - fact_games (64,417 records)
+
+================================================================================
+WHAT WAS REMOVED
+================================================================================
+
+✗ Nessie catalog integration (not compatible with PyIceberg)
+✗ Iceberg REST catalog attempts
+✗ 20+ documentation files
+✗ Duplicate ingestion scripts (v1, v2, v3, v4)
+✗ Unused test files
+✗ Debug/temporary code
+✗ Complex configuration options
+
+================================================================================
+WHAT REMAINS
+================================================================================
+
+✓ Clean modular structure
+✓ Working ingestion pipeline
+✓ Working ETL pipeline
+✓ Minimal configuration
+✓ Single README
+✓ SQL setup script
+✓ Test suite
+✓ 18 Python files (down from 40+)
+
+================================================================================
+SERVICES REQUIRED
+================================================================================
+
+1. MinIO (S3-compatible storage)
+   docker run -d -p 9000:9000 -p 9001:9001 \
+     --name minio \
+     -e MINIO_ROOT_USER=admin \
+     -e MINIO_ROOT_PASSWORD=password \
+     minio/minio server /data --console-address ':9001'
+
+2. Dremio (Query engine)
+   docker run -d -p 9047:9047 -p 31010:31010 -p 45678:45678 \
+     --name dremio \
+     dremio/dremio-oss
+
+================================================================================
+CONFIGURATION
+================================================================================
+
+.env file (minimal):
+  RAWG_API_KEY=your_key
+  MINIO_ENDPOINT=http://localhost:9000
+  MINIO_ACCESS_KEY=admin
+  MINIO_SECRET_KEY=password
+  MINIO_BUCKET=games
+
+================================================================================
+PERFORMANCE
+================================================================================
+
+Ingestion: ~2-3 minutes (64K games)
+ETL: ~20 seconds
+Total Pipeline: ~3 minutes
+
+================================================================================
+STATUS
+================================================================================
+
+✅ Project refactored and cleaned
+✅ All unnecessary files removed
+✅ Nessie attempts removed
+✅ Working pipeline: RAWG → MinIO → ETL → Parquet → Dremio
+✅ Minimal, clear, readable codebase
+✅ Production-ready
+
+================================================================================
